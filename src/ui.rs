@@ -1899,11 +1899,25 @@ where
         return None;
     }
 
+    // Use `.id(node_id)` (which implies `global_scope = true`) instead of
+    // `.id_salt(node_id)`. With `id_salt`, egui computes the child's
+    // `unique_id` as `stable_id.with(parent.next_auto_id_salt)`, which
+    // means every auto-id-using widget inside the node body inherits a
+    // salt that depends on this node's position in the parent's auto-id
+    // stream -- i.e. on its draw order. Reordering nodes (via
+    // `node_to_top` after a click or drag) then shifts every body widget's
+    // id between frames, producing egui's
+    // "Widget rect ... changed id between passes" warning.
+    //
+    // `global_scope` makes `unique_id == stable_id == node_id` and seeds
+    // the child's own `next_auto_id_salt` from `node_id` only, so node
+    // widget ids become draw-order-independent. `node_id` is already
+    // globally unique (it includes `snarl_id` and the node's slot index).
     let node_ui = &mut ui.new_child(
         UiBuilder::new()
             .max_rect(node_frame_rect.round_ui())
             .layout(Layout::top_down(Align::Center))
-            .id_salt(node_id),
+            .id(node_id),
     );
 
     let mut new_pins_size = Vec2::ZERO;
